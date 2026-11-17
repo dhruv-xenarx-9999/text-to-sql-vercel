@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text-to-SQL Assistant (Groq)</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation (3 Screens) -->
+        <aside class="sidebar">
+            <div class="brand">
+                <h2>Text-to-SQL</h2>
+                <span class="badge">Groq API</span>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-btn active" data-target="screen-chat">
+                    💬 SQL Chatbot
+                </button>
+                <button class="nav-btn" data-target="screen-schema">
+                    🗄️ Database Setup
+                </button>
+                <button class="nav-btn" data-target="screen-settings">
+                    ⚙️ Settings
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <div id="active-db-indicator">DB: Loading...</div>
+                <div id="active-model-indicator">Model: Loading...</div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+
+            <!-- ========================================== -->
+            <!-- SCREEN 1: SQL CHATBOT                      -->
+            <!-- ========================================== -->
+            <section id="screen-chat" class="screen active">
+                <header class="screen-header">
+                    <div>
+                        <h1>SQL Chatbot</h1>
+                        <p>Ask questions in plain English. Select your target SQL dialect first.</p>
+                    </div>
+                    <div class="header-controls">
+                        <label for="chat-dialect-select"><strong>SQL Dialect:</strong></label>
+                        <select id="chat-dialect-select" class="select-input">
+                            <option value="PostgreSQL">PostgreSQL</option>
+                            <option value="MySQL">MySQL</option>
+                            <option value="SQLite">SQLite</option>
+                            <option value="SQL Server (T-SQL)">SQL Server (T-SQL)</option>
+                            <option value="Oracle SQL">Oracle SQL</option>
+                            <option value="Standard ANSI SQL">Standard ANSI SQL</option>
+                        </select>
+                        <button id="clear-chat-btn" class="btn btn-secondary">Clear Chat</button>
+                    </div>
+                </header>
+
+                <div id="chat-box" class="chat-box">
+                    <div class="message bot-message">
+                        <div class="message-content">
+                            Hello! Choose your <strong>SQL Dialect</strong> at the top right, then ask a question about your database.
+                        </div>
+                    </div>
+                </div>
+
+                <form id="chat-form" class="chat-input-area">
+                    <input 
+                        type="text" 
+                        id="user-input" 
+                        placeholder="e.g., Show top 5 customers who spent the most money..." 
+                        autocomplete="off" 
+                        required
+                    >
+                    <button type="submit" id="send-btn" class="btn btn-primary">Generate SQL</button>
+                </form>
+            </section>
+
+            <!-- ========================================== -->
+            <!-- SCREEN 2: DATABASE SETUP                   -->
+            <!-- ========================================== -->
+            <section id="screen-schema" class="screen">
+                <header class="screen-header">
+                    <div>
+                        <h1>Database Setup</h1>
+                        <p>Define your tables, columns, keys, and descriptions once.</p>
+                    </div>
+                    <div class="header-controls">
+                        <button type="button" id="add-table-btn" class="btn btn-secondary">+ Add Table</button>
+                        <button type="button" id="save-schema-btn" class="btn btn-primary">Save Database Schema</button>
+                    </div>
+                </header>
+
+                <div class="card">
+                    <label for="db-name-input"><strong>Database Name</strong></label>
+                    <input type="text" id="db-name-input" class="text-input" placeholder="e.g., company_sales_db">
+                </div>
+
+                <div id="tables-container">
+                    <!-- Dynamic table cards will be rendered here by script.js -->
+                </div>
+            </section>
+
+            <!-- ========================================== -->
+            <!-- SCREEN 3: SETTINGS                         -->
+            <!-- ========================================== -->
+            <section id="screen-settings" class="screen">
+                <header class="screen-header">
+                    <div>
+                        <h1>Settings</h1>
+                        <p>Configure your Groq API key, model, and default SQL dialect.</p>
+                    </div>
+                </header>
+
+                <div class="card settings-card">
+                    <h3>1. Groq API Key</h3>
+                    <p id="env-key-hint" class="help-text">Configured via Vercel Environment Variable or enter a key below.</p>
+                    <input type="password" id="groq-api-key-input" class="text-input" placeholder="gsk_... (leave blank if set in Vercel)">
+
+                    <div class="connection-row">
+                        <span id="groq-status-badge" class="status-badge status-checking">Checking...</span>
+                        <button type="button" id="test-connection-btn" class="btn btn-secondary">Verify Key & Load Models</button>
+                    </div>
+
+                    <hr class="divider">
+
+                    <h3>2. Select Groq Model</h3>
+                    <p class="help-text">Click <strong>Verify Key & Load Models</strong> to populate all models enabled on your Groq account.</p>
+                    <select id="groq-model-select" class="select-input full-width">
+                        <option value="llama-3.1-8b-instant">llama-3.1-8b-instant</option>
+                    </select>
+
+                    <hr class="divider">
+
+                    <h3>3. Default SQL Dialect</h3>
+                    <p class="help-text">Pre-selected dialect when you open the chatbot.</p>
+                    <select id="default-dialect-select" class="select-input full-width">
+                        <option value="PostgreSQL">PostgreSQL</option>
+                        <option value="MySQL">MySQL</option>
+                        <option value="SQLite">SQLite</option>
+                        <option value="SQL Server (T-SQL)">SQL Server (T-SQL)</option>
+                        <option value="Oracle SQL">Oracle SQL</option>
+                        <option value="Standard ANSI SQL">Standard ANSI SQL</option>
+                    </select>
+
+                    <div class="settings-actions">
+                        <button type="button" id="save-settings-btn" class="btn btn-primary">Save Settings</button>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
